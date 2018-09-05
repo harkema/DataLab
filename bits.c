@@ -251,8 +251,21 @@ int allEvenBits(int x)
  *   Max ops: 12
  *   Rating: 2
  */
-int anyOddBit(int x) {
-    return 2;
+int anyOddBit(int x)
+{
+
+  int allOddsToTrue = 0xaa;
+
+  allOddsToTrue = (allOddsToTrue << 8) ^ allOddsToTrue;
+  allOddsToTrue = (allOddsToTrue << 16) ^ allOddsToTrue;
+
+  //Now have a 32 bit number with each odd bit represented by a 1
+
+  //And the mask against x to determine if any odd bit is 1 -> if a odd bit is 1, performing a logical negation will return a 0 (false)
+  //However, this means the function should return 1 (true)
+
+  return !!(x&allOddsToTrue);
+
 }
 /*
  * byteSwap - swaps the nth byte and the mth byte
@@ -263,8 +276,37 @@ int anyOddBit(int x) {
  *  Max ops: 25
  *  Rating: 2
  */
-int byteSwap(int x, int n, int m) {
-    return 2;
+int byteSwap(int x, int n, int m)
+{
+    //Getting bit position for n
+    int posN = n << 3;
+
+    //Getting bit posiition for m
+    int posM = m << 3;
+
+    //Store 8 bits in 0xff mask (all ones)
+
+    //Store bytes separetely within mask and clear to all 0's by anding against original number x
+    int store = 0xff;
+    int nByte = (store << posN)&x;
+    int mByte = (store << posM)&x;
+
+    //Combine the bytes
+    int combine = (store << posN) | (store << posM);
+
+    //Now need to shift bytes back to "swapped" position
+    nByte  = (nByte >> posN)&store;
+    mByte = (mByte >> posM)&store;
+    nByte = nByte << posM;
+    mByte  = mByte << posN;
+
+    //Part of bit that didn't change
+    combine  = ~combine & x;
+
+    return combine| mByte | nByte;
+
+
+
 }
 /*
  * addOK - Determine if can compute x+y without overflow
@@ -274,8 +316,33 @@ int byteSwap(int x, int n, int m) {
  *   Max ops: 20
  *   Rating: 3
  */
-int addOK(int x, int y) {
-  return 2;
+int addOK(int x, int y)
+{
+  int sum = x+y;
+
+  //Get sign bit for x
+  int xSign = x >> 31;
+
+  //Get sign bit for y
+  int ySign = y >> 31;
+
+  //Get sign bit for sum of x and y
+  int sumSign = sum >> 31;
+
+  //Check whether x and y have the same sign w/ ex or statement
+  //Will return true if the signs are the same
+  int isSameSign = !(xSign ^ ySign);
+
+  //Check if sumSign and signs for both x and y are the same
+  //Will return true if the signs are the same and there is no overflow
+  int checkOverflow = (xSign ^ sumSign);
+
+  //If they are the same signs and there is no overflow, return true
+  return !(isSameSign & checkOverflow);
+
+
+
+
 }
 /*
  * conditional - same as x ? y : z
@@ -284,8 +351,14 @@ int addOK(int x, int y) {
  *   Max ops: 16
  *   Rating: 3
  */
-int conditional(int x, int y, int z) {
-  return 2;
+int conditional(int x, int y, int z)
+{
+  int mask = !x + ~0x00;
+
+  //Case 1: x != 0 and y should be returned -> z should be masked out
+  //Case 2: x == 0 and x should be returned -> y should be masked out
+
+  return ((~mask) & z) | ((mask) & y);
 }
 /*
  * isAsciiDigit - return 1 if 0x30 <= x <= 0x39 (ASCII codes for characters '0' to '9')
@@ -296,8 +369,25 @@ int conditional(int x, int y, int z) {
  *   Max ops: 15
  *   Rating: 3
  */
-int isAsciiDigit(int x) {
-  return 2;
+
+int isAsciiDigit(int x)
+{
+  //Negative sign only occurs if x is not an ascii digit
+  int negativeSign = 1<<31;
+
+  //Or to get negative 0x39 with a negative sign
+  //Complment to
+  int upperLimit = ~(negativeSign | 0x39);
+
+  int lowerLimit = ~0x30;
+
+  //Add x to the limits and check the sign
+
+  upperLimit = negativeSign & (upperLimit+x) >> 31;
+  lowerLimit = negativeSign & (lowerLimit+1+x) >> 31;
+
+  //If either condition is true, the condition is negative and this or statement would be false
+  return !(upperLimit | lowerLimit);
 }
 /*
  * replaceByte(x,n,c) - Replace byte n in x with c
@@ -308,8 +398,18 @@ int isAsciiDigit(int x) {
  *   Max ops: 10
  *   Rating: 3
  */
-int replaceByte(int x, int n, int c) {
-  return 2;
+int replaceByte(int x, int n, int c)
+{
+    //Store bit position of n
+    int posN = n << 3;
+
+    //Store n in mask 0xff
+    int store = 0xff << posN;
+
+    //Place c in correct position in the mask
+    int placeC = c << posN;
+
+    return (x & ~store) | placeC;
 }
 /* reverseBits - reverse the bits in a 32-bit integer,
               i.e. b0 swaps with b31, b1 with b30, etc
