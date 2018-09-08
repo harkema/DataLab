@@ -1,7 +1,8 @@
 /*
  * CS:APP Data Lab
  *
- * <Please put your name and userid here>
+ * Kiana Harkema 106102554
+ *
  *
  * bits.c - Source file with your solutions to the Lab.
  *          This is the file you will hand in to your instructor.
@@ -423,8 +424,46 @@ int replaceByte(int x, int n, int c)
  *  Max ops: 90
  *  Rating: 4
  */
-int reverseBits(int x) {
-  return 0;
+int reverseBits(int x)
+{
+
+   /*x = ((x >> 1) & 0x55555555u) | ((x & 0x55555555u) << 1);
+   x = ((x >> 2) & 0x33333333u) | ((x & 0x33333333u) << 2);
+   x = ((x >> 4) & 0x0f0f0f0fu) | ((x & 0x0f0f0f0fu) << 4);
+   x = ((x >> 8) & 0x00ff00ffu) | ((x & 0x00ff00ffu) << 8);
+   x = ((x >> 16) & 0xffffu) | ((x & 0xffffu) << 16);
+   return x;*/
+
+  //Swapping even and odd bits
+  int reverseMask = 0x55;
+  reverseMask = reverseMask << 8 | reverseMask;
+  reverseMask = reverseMask << 16 | reverseMask;
+  x  = ((x >> 1) & reverseMask) | ((x & reverseMask) << 1);
+
+  //Swapping bit pairs
+  int reverseMask2 = 0x33;
+  reverseMask2 = reverseMask2 << 8 | reverseMask2;
+  reverseMask2 = reverseMask2 << 16 | reverseMask2;
+  x = ((x >> 2) & reverseMask2) | ((x & reverseMask2) << 2);
+
+  //Swapping nibbles
+  int reverseMask3 = 0x0f0f0f0f;
+  //reverseMask3 = reverseMask3 << 8 | reverseMask3;
+  //reverseMask3 = reverseMask3 << 16 | reverseMask3;
+  x = ((x >> 4) & reverseMask3) | ((x & reverseMask3) << 4);
+
+
+  //Swapping bytes
+  int reverseMask4 = 0x00ff00ff;
+  //reverseMask4 = reverseMask4 << 8 | reverseMask4;
+  //reverseMask4 = reverseMask3 << 16 | reverseMask4;
+  x = ((x >> 8) & reverseMask4) | ((x & reverseMask4) << 8);
+
+  int reverseMask5 = 0xffff;
+  x = ((x >> 16) & reverseMask5) | ((x & reverseMask5) << 16);
+
+
+  return x;
 }
 /*
  * satAdd - adds two numbers but when positive overflow occurs, returns
@@ -436,8 +475,24 @@ int reverseBits(int x) {
  *   Max ops: 30
  *   Rating: 4
  */
-int satAdd(int x, int y) {
-  return 2;
+int satAdd(int x, int y)
+{
+  int sum  =  x + y;
+
+  //Get sign bit for x
+  int xSign = x >> 31;
+
+  //Get sign bit for y
+  int ySign = y >> 31;
+
+  //Get sign bit for sum of x and y
+  int sumSign = sum >> 31;
+
+  //Check what kind of overflow is occuring w/ ex or statement
+  int checkOverflow = ((sumSign ^ xSign) & (sumSign ^ ySign)) >> 31;
+
+  //If positive overflow get max value by shifting 31
+  return((sum >> (checkOverflow  & 31))  + (checkOverflow << 31));
 }
 /*
  * Extra credit
