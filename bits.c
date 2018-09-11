@@ -427,39 +427,35 @@ int replaceByte(int x, int n, int c)
 int reverseBits(int x)
 {
 
-   /*x = ((x >> 1) & 0x55555555u) | ((x & 0x55555555u) << 1);
-   x = ((x >> 2) & 0x33333333u) | ((x & 0x33333333u) << 2);
-   x = ((x >> 4) & 0x0f0f0f0fu) | ((x & 0x0f0f0f0fu) << 4);
-   x = ((x >> 8) & 0x00ff00ffu) | ((x & 0x00ff00ffu) << 8);
-   x = ((x >> 16) & 0xffffu) | ((x & 0xffffu) << 16);
-   return x;*/
 
   //Swapping even and odd bits
   int reverseMask = 0x55;
+  int reverseMask2 = 0x33;
+  int reverseMask3 = 0x0f0f0f0f;
+  int reverseMask4 = 0x00ff00ff;
+  int reverseMask5 = 0xffff;
+
+
   reverseMask = reverseMask << 8 | reverseMask;
   reverseMask = reverseMask << 16 | reverseMask;
   x  = ((x >> 1) & reverseMask) | ((x & reverseMask) << 1);
 
   //Swapping bit pairs
-  int reverseMask2 = 0x33;
   reverseMask2 = reverseMask2 << 8 | reverseMask2;
   reverseMask2 = reverseMask2 << 16 | reverseMask2;
   x = ((x >> 2) & reverseMask2) | ((x & reverseMask2) << 2);
 
   //Swapping nibbles
-  int reverseMask3 = 0x0f0f0f0f;
   //reverseMask3 = reverseMask3 << 8 | reverseMask3;
   //reverseMask3 = reverseMask3 << 16 | reverseMask3;
   x = ((x >> 4) & reverseMask3) | ((x & reverseMask3) << 4);
 
 
   //Swapping bytes
-  int reverseMask4 = 0x00ff00ff;
   //reverseMask4 = reverseMask4 << 8 | reverseMask4;
   //reverseMask4 = reverseMask3 << 16 | reverseMask4;
   x = ((x >> 8) & reverseMask4) | ((x & reverseMask4) << 8);
 
-  int reverseMask5 = 0xffff;
   x = ((x >> 16) & reverseMask5) | ((x & reverseMask5) << 16);
 
 
@@ -508,8 +504,24 @@ int satAdd(int x, int y)
  *   Max ops: 10
  *   Rating: 2
  */
-unsigned float_abs(unsigned uf) {
-  return 2;
+unsigned float_abs(unsigned uf)
+{
+  unsigned mask = 0x7fffffff;
+  unsigned minValue = 0x7f800001;
+
+  //Set sign to 0 to make absvalue
+  unsigned result  = uf & mask;
+
+  //Value is NaN
+  if (result >= minValue)
+  {
+    return uf;
+  }
+  else
+  {
+    return result;
+  }
+
 }
 /*
  * float_f2i - Return bit-level equivalent of expression (int) f
@@ -523,8 +535,60 @@ unsigned float_abs(unsigned uf) {
  *   Max ops: 30
  *   Rating: 4
  */
-int float_f2i(unsigned uf) {
-  return 2;
+int float_f2i(unsigned uf)
+{
+  //IEEE Representation of uf
+  unsigned signBit = uf >> 31;
+  unsigned exp = (uf >> 23) & 0xff;
+
+  //32 bit number -> 127 bias
+  unsigned bias = 0x7f;
+  unsigned frac = uf & 0x7fffff;
+
+  unsigned result = frac;
+
+  //Check if number is NaN or infinite
+  if (exp == 0xff)
+  {
+    return 0x80000000u;
+  }
+
+
+
+  //Check whether number is denormalized
+  if (exp < bias)
+  {
+    return 0x0;
+  }
+
+  unsigned encodedE = exp - bias;
+
+
+    if (encodedE >= 31)
+    {
+      return 0x80000000u;
+    }
+
+  if (encodedE > 22)
+  {
+    result = frac << (encodedE - 23);
+  }
+  else
+  {
+    result = frac >> (23 - encodedE);
+  }
+
+
+  //Complete two's complement
+  result = (result + 1) << encodedE;
+
+  if (signBit == 1)
+  {
+    result = -result;
+  }
+
+  return result;
+
 }
 /*
  * float_half - Return bit-level equivalent of expression 0.5*f for
@@ -537,6 +601,27 @@ int float_f2i(unsigned uf) {
  *   Max ops: 30
  *   Rating: 4
  */
-unsigned float_half(unsigned uf) {
-  return 2;
+unsigned float_half(unsigned uf)
+{
+  int signBit = uf & 0x80000000;
+  int exp = uf & 0x7f800000;
+  int frac = uf & 0x007fffff;
+
+  //Check whehter NaN or infinity
+  //exp == frac bit are all ones
+  if (exp == 0x7f800000)
+  {
+    return uf;
+  }
+
+  //Checks whether frac is denormalized
+  if((!exp) || (exp == 0x00800000))
+  {
+    frac = frac | exp;
+    frac = (uf & 0x00ffffff) >> 1;
+    frac = frac + (((uf & 3) >> 1) & (uf & 1));
+    return signBit | frac;
+  }
+
+  return signBit | ((exp -1) & 0x7f800000)| frac;
 }
