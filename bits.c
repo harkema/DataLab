@@ -431,9 +431,9 @@ int reverseBits(int x)
   //Swapping even and odd bits
   int reverseMask = 0x55;
   int reverseMask2 = 0x33;
-  int reverseMask3 = 0x0f0f0f0f;
-  int reverseMask4 = 0x00ff00ff;
-  int reverseMask5 = 0xffff;
+  int reverseMask3 = 0x0f;
+  int reverseMask4 = 0x00;
+  int reverseMask5 = 0xff;
 
 
   reverseMask = reverseMask << 8 | reverseMask;
@@ -446,16 +446,18 @@ int reverseBits(int x)
   x = ((x >> 2) & reverseMask2) | ((x & reverseMask2) << 2);
 
   //Swapping nibbles
-  //reverseMask3 = reverseMask3 << 8 | reverseMask3;
-  //reverseMask3 = reverseMask3 << 16 | reverseMask3;
+  reverseMask3 = reverseMask3 << 8 | reverseMask3;
+  reverseMask3 = reverseMask3 << 16 | reverseMask3;
   x = ((x >> 4) & reverseMask3) | ((x & reverseMask3) << 4);
 
 
   //Swapping bytes
-  //reverseMask4 = reverseMask4 << 8 | reverseMask4;
-  //reverseMask4 = reverseMask3 << 16 | reverseMask4;
+  reverseMask4 = reverseMask4 << 8 | 0xff;
+  reverseMask4 = reverseMask4 << 16 | reverseMask4;
   x = ((x >> 8) & reverseMask4) | ((x & reverseMask4) << 8);
 
+
+  reverseMask5 = reverseMask5 << 8 | reverseMask5;
   x = ((x >> 16) & reverseMask5) | ((x & reverseMask5) << 16);
 
 
@@ -508,10 +510,11 @@ unsigned float_abs(unsigned uf)
 {
   unsigned mask = 0x7fffffff;
   unsigned minValue = 0x7f800001;
+  unsigned result;
+
 
   //Set sign to 0 to make absvalue
-  unsigned result  = uf & mask;
-
+  result  = uf & mask;
   //Value is NaN
   if (result >= minValue)
   {
@@ -540,12 +543,11 @@ int float_f2i(unsigned uf)
   //IEEE Representation of uf
   unsigned signBit = uf >> 31;
   unsigned exp = (uf >> 23) & 0xff;
-
+  unsigned frac = uf & 0x7fffff;
   //32 bit number -> 127 bias
   unsigned bias = 0x7f;
-  unsigned frac = uf & 0x7fffff;
-
   unsigned result = frac;
+
 
   //Check if number is NaN or infinite
   if (exp == 0xff)
@@ -553,34 +555,31 @@ int float_f2i(unsigned uf)
     return 0x80000000u;
   }
 
-
-
   //Check whether number is denormalized
   if (exp < bias)
   {
     return 0x0;
   }
 
-  unsigned encodedE = exp - bias;
+  exp = exp - bias;
 
-
-    if (encodedE >= 31)
-    {
-      return 0x80000000u;
-    }
-
-  if (encodedE > 22)
+  if (exp >= 31)
   {
-    result = frac << (encodedE - 23);
+      return 0x80000000u;
+  }
+
+  if (exp > 22)
+  {
+    result = frac << (exp - 23);
   }
   else
   {
-    result = frac >> (23 - encodedE);
+    result = frac >> (23 - exp);
   }
 
 
   //Complete two's complement
-  result = (result + 1) << encodedE;
+  result = result + (1 << exp);
 
   if (signBit == 1)
   {
@@ -603,9 +602,10 @@ int float_f2i(unsigned uf)
  */
 unsigned float_half(unsigned uf)
 {
-  int signBit = uf & 0x80000000;
+  int signBit = uf  & 0x80000000;
   int exp = uf & 0x7f800000;
   int frac = uf & 0x007fffff;
+
 
   //Check whehter NaN or infinity
   //exp == frac bit are all ones
